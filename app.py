@@ -1,7 +1,6 @@
 import streamlit as st
 from google import genai
 from google.genai import types
-from twilio.rest import Client
 from prompts import SYSTEM_PROMPT
 
 st.set_page_config(
@@ -10,12 +9,10 @@ st.set_page_config(
     layout="centered"
 )
 
-# Ask for the user's name and WhatsApp number
+# Ask for the user's name 
 if "user_name" not in st.session_state:
     st.session_state.user_name = ""
 
-if "whatsapp_number" not in st.session_state:
-    st.session_state.whatsapp_number = ""
 
 if not st.session_state.user_name:
     st.title("Welcome to MacroSnap 🥗")
@@ -32,26 +29,9 @@ if not st.session_state.user_name:
     st.stop()
 
 
-if not st.session_state.whatsapp_number:
-    st.title(f"Nice to meet you, {st.session_state.user_name}! 👋")
-
-    whatsapp = st.text_input("Enter your WhatsApp number")
-
-    if st.button("Start Chat"):
-        if whatsapp.strip():
-            st.session_state.whatsapp_number = whatsapp.strip()
-            st.rerun()
-        else:
-            st.warning("Please enter your WhatsApp number.")
-
-    st.stop()
 # Connect to Gemini
 client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
-twilio_client = Client(
-    st.secrets["TWILIO_ACCOUNT_SID"],
-    st.secrets["TWILIO_AUTH_TOKEN"]
-)
 
 # Page title
 with st.sidebar:
@@ -161,58 +141,5 @@ if user_message:
         "content": response.text
     })
 
-    with st.chat_message("assistant"):
-        st.write(response.text)
-
-        st.divider()
-
-st.divider()
-
-if st.button("📱 Send Summary to WhatsApp"):
-
-    # Build the conversation summary
-    summary = f"MacroSnap Summary for {st.session_state.user_name}\n\n"
-
-    for message in st.session_state.messages:
-        if message["role"] == "user":
-            summary += f"You: {message['content']}\n"
-        else:
-            summary += f"MacroSnap: {message['content']}\n"
-
-    try:
-        # Get the WhatsApp number
-        whatsapp_number = str(
-            st.session_state.get("whatsapp_number", "")
-        ).strip()
-
-        # Make sure a number was provided
-        if not whatsapp_number:
-            st.error("❌ Please enter your WhatsApp number first.")
-            st.stop()
-
-        # Add whatsapp: prefix if it isn't already there
-        if not whatsapp_number.startswith("whatsapp:"):
-            whatsapp_number = f"whatsapp:{whatsapp_number}"
-
-        # Get the Twilio WhatsApp sender
-        whatsapp_from = st.secrets["TWILIO_WHATSAPP_FROM"].strip()
-
-        # Make sure the sender has the correct prefix
-        if not whatsapp_from.startswith("whatsapp:"):
-            whatsapp_from = f"whatsapp:{whatsapp_from}"
-
-        # Send WhatsApp message
-        message = twilio_client.messages.create(
-            from_=whatsapp_from,
-            to=whatsapp_number,
-            body=summary
-        )
-
-        st.success("✅ Summary sent to your WhatsApp!")
-        st.write(f"Message SID: {message.sid}")
-
-    except Exception as e:
-        st.error("❌ Could not send the WhatsApp message.")
-
-        # Display the actual Twilio error
-        st.exception(e)
+    
+        
